@@ -537,15 +537,6 @@
                         <input type="checkbox" ${job.applied ? 'checked' : ''} 
                                onchange="toggleApplied(${job.id})">
                     </td>
-                    <td style="text-align: center;">
-    <button onclick="deleteCompany(${job.id})" 
-            style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600; transition:all 0.3s;"
-            onmouseover="this.style.background='#d32f2f'"
-            onmouseout="this.style.background='#f44336'">
-        🗑️ Удалить
-    </button>
-</td>
-                    <td>
                         <select onchange="updateStatus(${job.id}, this.value)" class="status-${job.status.toLowerCase().replace(' ', '-')}">
                             <option value="Не отправлен" ${job.status === 'Не отправлен' ? 'selected' : ''}>Не отправлен</option>
                             <option value="Отправлен" ${job.status === 'Отправлен' ? 'selected' : ''}>Отправлен</option>
@@ -556,11 +547,19 @@
                         </select>
                     </td>
                     <td>
-                        <input type="text" value="${job.notes}" 
-                               onchange="updateNotes(${job.id}, this.value)"
-                               placeholder="Добавить заметку..."
-                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 5px;">
-                    </td>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <input type="text" value="${job.notes}" 
+               onchange="updateNotes(${job.id}, this.value)"
+               placeholder="Добавить заметку..."
+               style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 5px;">
+        <button onclick="deleteCompany(${job.id})" 
+                style="background:#f44336; color:white; border:none; padding:6px 12px; border-radius:5px; cursor:pointer; font-weight:600; white-space: nowrap;"
+                onmouseover="this.style.background='#d32f2f'"
+                onmouseout="this.style.background='#f44336'">
+            🗑️ Удалить
+        </button>
+    </div>
+</td>
                 `;
                 tbody.appendChild(row);
             });
@@ -729,7 +728,6 @@
                         <th>Отклик</th>
                         <th>Статус</th>
                         <th>Заметки</th>
-                        <th style="text-align: center;">Действия</th>
                     </tr>
                 </thead>
                 <tbody>
