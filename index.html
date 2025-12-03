@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Трекер откликов на вакансии</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .stat-card:nth-child(1) .stat-number { color: #667eea; }
+        .stat-card:nth-child(2) .stat-number { color: #4CAF50; }
+        .stat-card:nth-child(3) .stat-number { color: #FFC107; }
+        .stat-card:nth-child(4) .stat-number { color: #f44336; }
+        .stat-card:nth-child(5) .stat-number { color: #9C27B0; }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            height: fit-content;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .company-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .sector {
+            font-size: 12px;
+            color: #666;
+            display: block;
+            margin-top: 3px;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        select:hover {
+            border-color: #667eea;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .status-не-отправлен { 
+            background-color: #e8eaf6; 
+            color: #3f51b5; 
+            border: 2px solid #3f51b5;
+        }
+        .status-отправлен { 
+            background-color: #e1f5fe; 
+            color: #0277bd; 
+            border: 2px solid #0277bd;
+        }
+        .status-просмотрен { 
+            background-color: #fff3e0; 
+            color: #f57c00; 
+            border: 2px solid #f57c00;
+            font-weight: 600;
+        }
+        .status-интервью { 
+            background-color: #fff9c4; 
+            color: #f9a825; 
+            border: 2px solid #f9a825;
+            font-weight: 600;
+        }
+        .status-оффер { 
+            background-color: #c8e6c9; 
+            color: #2e7d32; 
+            border: 2px solid #2e7d32;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+        }
+        .status-отказ { 
+            background-color: #ffcdd2; 
+            color: #c62828; 
+            border: 2px solid #c62828;
+            font-weight: 600;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .filters {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid white;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .export-btn.excel {
+            background: linear-gradient(135deg, #1D6F42 0%, #0F4C29 100%);
+        }
+
+        .export-btn.word {
+            background: linear-gradient(135deg, #2B579A 0%, #1B3B6F 100%);
+        }
+
+        .export-btn.pdf {
+            background: linear-gradient(135deg, #DC143C 0%, #8B0000 100%);
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .modal-content p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Трекер откликов на вакансии</h1>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCompanies">75</div>
+                <div class="stat-label">Всего компаний</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="sentCount">0</div>
+                <div class="stat-label">Отправлено откликов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="inProgressCount">0</div>
+                <div class="stat-label">В процессе</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="rejectedCount">0</div>
+                <div class="stat-label">Отказов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="offerCount">0</div>
+                <div class="stat-label">Офферов</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterBySector('all')">Все</button>
+            <button class="filter-btn" onclick="filterBySector('Финансы')">Финансы</button>
+            <button class="filter-btn" onclick="filterBySector('Ритейл')">Ритейл</button>
+            <button class="filter-btn" onclick="filterBySector('IT')">IT</button>
+            <button class="filter-btn" onclick="filterBySector('Медицина')">Медицина</button>
+            <button class="filter-btn" onclick="filterBySector('Телеком')">Телеком</button>
+            <button class="filter-btn" onclick="filterBySector('Энергетика')">Энергетика</button>
+        </div>
+
+        <div class="main-content">
+            <div class="table-container">
+                <table id="jobTable">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>Компания</th>
+                            <th style="text-align: center;">Отклик отправлен</th>
+                            <th>Статус заявки</th>
+                            <th>Заметки</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+                
+                <div class="export-buttons">
+                    <button class="export-btn" onclick="exportToCSV()">
+                        📊 CSV (для Google Таблиц)
+                    </button>
+                    <button class="export-btn excel" onclick="exportToExcel()">
+                        📗 Excel (XLSX)
+                    </button>
+                    <button class="export-btn word" onclick="exportToWord()">
+                        📘 Word (DOC)
+                    </button>
+                    <button class="export-btn pdf" onclick="printToPDF()">
+                        📕 Печать/PDF
+                    </button>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3 style="margin-bottom: 20px; color: #667eea;">📊 Статистика откликов</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <h2>✅ Файл готов!</h2>
+            <p id="modalMessage">Ваш файл успешно скачан</p>
+            <button class="close-btn" onclick="closeModal()">Закрыть</button>
+        </div>
+    </div>
+
+    <script>
+        const companies = [
+            {name: "Альфа-Банк", sector: "Финансы"},
+            {name: "ВТБ", sector: "Финансы"},
+            {name: "Сбербанк", sector: "Финансы"},
+            {name: "Тинькофф", sector: "Финансы"},
+            {name: "X5 Group", sector: "Ритейл"},
+            {name: "Wildberries", sector: "Ритейл"},
+            {name: "Ozon", sector: "Ритейл"},
+            {name: "Яндекс", sector: "IT"},
+            {name: "Авито", sector: "IT"},
+            {name: "VK (ВКонтакте)", sector: "IT"},
+            {name: "Mars", sector: "Производство"},
+            {name: "СМ-Клиника", sector: "Медицина"},
+            {name: "Контур", sector: "IT"},
+            {name: "Level Group", sector: "Девелопмент"},
+            {name: "НЛМК", sector: "Производство"},
+            {name: "СИБУР", sector: "Энергетика"},
+            {name: "Норникель", sector: "Производство"},
+            {name: "РУСАЛ", sector: "Производство"},
+            {name: "Газпром", sector: "Энергетика"},
+            {name: "Роснефть", sector: "Энергетика"},
+            {name: "ЛУКОЙЛ", sector: "Энергетика"},
+            {name: "Татнефть", sector: "Энергетика"},
+            {name: "Росатом", sector: "Энергетика"},
+            {name: "Транснефть", sector: "Энергетика"},
+            {name: "РЖД", sector: "Транспорт"},
+            {name: "МТС", sector: "Телеком"},
+            {name: "МегаФон", sector: "Телеком"},
+            {name: "Билайн", sector: "Телеком"},
+            {name: "Теле2", sector: "Телеком"},
+            {name: "Ростелеком", sector: "Телеком"},
+            {name: "Совкомбанк", sector: "Финансы"},
+            {name: "Открытие", sector: "Финансы"},
+            {name: "Райффайзен Банк", sector: "Финансы"},
+            {name: "Россельхозбанк", sector: "Финансы"},
+            {name: "Магнит", sector: "Ритейл"},
+            {name: "Лента", sector: "Ритейл"},
+            {name: "Детский мир", sector: "Ритейл"},
+            {name: "Спортмастер", sector: "Ритейл"},
+            {name: "Л'Этуаль", sector: "Ритейл"},
+            {name: "Азбука Вкуса", sector: "Ритейл"},
+            {name: "Красное&Белое", sector: "Ритейл"},
+            {name: "Вкусно – и точка", sector: "Общепит"},
+            {name: "KFC", sector: "Общепит"},
+            {name: "Burger King", sector: "Общепит"},
+            {name: "Додо Пицца", sector: "Общепит"},
+            {name: "Яндекс Еда", sector: "Общепит"},
+            {name: "СДЭК", sector: "Логистика"},
+            {name: "Почта России", sector: "Логистика"},
+            {name: "ПЭК", sector: "Логистика"},
+            {name: "Деловые Линии", sector: "Логистика"},
+            {name: "ПИК", sector: "Девелопмент"},
+            {name: "Самолет", sector: "Девелопмент"},
+            {name: "ЛСР", sector: "Девелопмент"},
+            {name: "Иви (ivi)", sector: "IT"},
+            {name: "Лаборатория Касперского", sector: "IT"},
+            {name: "Рамблер", sector: "IT"},
+            {name: "Циан", sector: "IT"},
+            {name: "Медси", sector: "Медицина"},
+            {name: "Инвитро", sector: "Медицина"},
+            {name: "Гемотест", sector: "Медицина"},
+            {name: "Р-Фарм", sector: "Медицина"},
+            {name: "Протек", sector: "Медицина"},
+            {name: "Аэрофлот", sector: "Транспорт"},
+            {name: "S7 Airlines", sector: "Транспорт"},
+            {name: "Азимут Отели", sector: "Гостиницы"},
+            {name: "Красная Поляна", sector: "Развлечения"},
+            {name: "Unilever Россия", sector: "Производство"},
+            {name: "Danone Россия", sector: "Производство"},
+            {name: "Coca-Cola HBC", sector: "Производство"},
+            {name: "PepsiCo Россия", sector: "Производство"},
+            {name: "Delivery Club", sector: "Общепит"},
+            {name: "М.Видео-Эльдорадо", sector: "Ритейл"},
+            {name: "Fix Price", sector: "Ритейл"},
+            {name: "Леруа Мерлен", sector: "Ритейл"},
+            {name: "ОБИ", sector: "Ритейл"}
+        ];
+
+        let jobData = [];
+        let currentFilter = 'all';
+
+        function initializeData() {
+            const saved = localStorage.getItem('jobTrackerData');
+            if (saved) {
+                jobData = JSON.parse(saved);
+            } else {
+                jobData = companies.map((company, index) => ({
+                    id: index,
+                    name: company.name,
+                    sector: company.sector,
+                    applied: false,
+                    status: 'Не отправлен',
+                    notes: ''
+                }));
+                saveData();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('jobTrackerData', JSON.stringify(jobData));
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            const filteredData = currentFilter === 'all' 
+                ? jobData 
+                : jobData.filter(job => job.sector === currentFilter);
+
+            filteredData.forEach((job) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${job.id + 1}</td>
+                    <td>
+                        <span class="company-name">${job.name}</span>
+                        <span class="sector">${job.sector}</span>
+                    </td>
+                    <td style="text-align: center;">
+                        <input type="checkbox" ${job.applied ? 'checked' : ''} 
+                               onchange="toggleApplied(${job.id})">
+                    </td>
+                    <td>
+                        <select onchange="updateStatus(${job.id}, this.value)" class="status-${job.status.toLowerCase().replace(' ', '-')}">
+                            <option value="Не отправлен" ${job.status === 'Не отправлен' ? 'selected' : ''}>Не отправлен</option>
+                            <option value="Отправлен" ${job.status === 'Отправлен' ? 'selected' : ''}>Отправлен</option>
+                            <option value="Просмотрен" ${job.status === 'Просмотрен' ? 'selected' : ''}>Просмотрен</option>
+                            <option value="Интервью" ${job.status === 'Интервью' ? 'selected' : ''}>Интервью</option>
+                            <option value="Оффер" ${job.status === 'Оффер' ? 'selected' : ''}>Оффер</option>
+                            <option value="Отказ" ${job.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" value="${job.notes}" 
+                               onchange="updateNotes(${job.id}, this.value)"
+                               placeholder="Добавить заметку..."
+                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 5px;">
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            updateStats();
+            updateChart();
+        }
+
+        function toggleApplied(id) {
+            jobData[id].applied = !jobData[id].applied;
+            if (jobData[id].applied && jobData[id].status === 'Не отправлен') {
+                jobData[id].status = 'Отправлен';
+            }
+            saveData();
+            renderTable();
+        }
+
+        function updateStatus(id, status) {
+            jobData[id].status = status;
+            if (status !== 'Не отправлен') {
+                jobData[id].applied = true;
+            }
+            saveData();
+            renderTable();
+        }
+
+        function updateNotes(id, notes) {
+            jobData[id].notes = notes;
+            saveData();
+        }
+
+        function updateStats() {
+            const sent = jobData.filter(j => j.applied).length;
+            const inProgress = jobData.filter(j => ['Просмотрен', 'Интервью'].includes(j.status)).length;
+            const rejected = jobData.filter(j => j.status === 'Отказ').length;
+            const offers = jobData.filter(j => j.status === 'Оффер').length;
+
+            document.getElementById('sentCount').textContent = sent;
+            document.getElementById('inProgressCount').textContent = inProgress;
+            document.getElementById('rejectedCount').textContent = rejected;
+            document.getElementById('offerCount').textContent = offers;
+        }
+
+        let chart;
+
+        function updateChart() {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            
+            const statusCounts = {
+                'Не отправлен': jobData.filter(j => j.status === 'Не отправлен').length,
+                'Отправлен': jobData.filter(j => j.status === 'Отправлен').length,
+                'Просмотрен': jobData.filter(j => j.status === 'Просмотрен').length,
+                'Интервью': jobData.filter(j => j.status === 'Интервью').length,
+                'Оффер': jobData.filter(j => j.status === 'Оффер').length,
+                'Отказ': jobData.filter(j => j.status === 'Отказ').length
+            };
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: [
+                            '#e8eaf6',
+                            '#e1f5fe',
+                            '#fff3e0',
+                            '#fff9c4',
+                            '#c8e6c9',
+                            '#ffcdd2'
+                        ],
+                        borderColor: [
+                            '#3f51b5',
+                            '#0277bd',
+                            '#f57c00',
+                            '#f9a825',
+                            '#2e7d32',
+                            '#c62828'
+                        ],
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function filterBySector(sector) {
+            currentFilter = sector;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            renderTable();
+        }
+
+        function exportToCSV() {
+            let csv = '\ufeffКомпания,Сектор,Отклик отправлен,Статус,Заметки\n';
+            jobData.forEach(job => {
+                csv += `"${job.name}","${job.sector}","${job.applied ? 'Да' : 'Нет'}","${job.status}","${job.notes}"\n`;
+            });
+            
+            downloadFile(csv, 'Трекер_вакансий.csv', 'text/csv;charset=utf-8;');
+            showModal('CSV файл скачан! Откройте его в Google Таблицах или Excel');
+        }
+
+        function exportToExcel() {
+            const ws_data = [
+                ['№', 'Компания', 'Сектор', 'Отклик отправлен', 'Статус заявки', 'Заметки']
+            ];
+            
+            jobData.forEach((job, index) => {
+                ws_data.push([
+                    index + 1,
+                    job.name,
+                    job.sector,
+                    job.applied ? 'Да' : 'Нет',
+                    job.status,
+                    job.notes
+                ]);
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            
+            ws['!cols'] = [
+                {wch: 5},
+                {wch: 25},
+                {wch: 15},
+                {wch: 18},
+                {wch: 15},
+                {wch: 30}
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, "Трекер вакансий");
+            XLSX.writeFile(wb, "Трекер_вакансий.xlsx");
+            
+            showModal('Excel файл скачан! Откройте его в Microsoft Excel или Google Sheets');
+        }
+
+        function exportToWord() {
+            let html = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'>
+                <head><meta charset='utf-8'><title>Трекер вакансий</title></head>
+                <body>
+                <h1>Трекер откликов на вакансии</h1>
+                <p>Дата экспорта: ${new Date().toLocaleDateString('ru-RU')}</p>
+                <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+                <thead>
+                    <tr style="background-color: #667eea; color: white;">
+                        <th>№</th>
+                        <th>Компания</th>
+                        <th>Сектор</th>
+                        <th>Отклик</th>
+                        <th>Статус</th>
+                        <th>Заметки</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            jobData.forEach((job, index) => {
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${job.name}</strong></td>
+                        <td>${job.sector}</td>
+                        <td>${job.applied ? '✓' : '—'}</td>
+                        <td>${job.status}</td>
+                        <td>${job.notes}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></body></html>';
+            
+            const blob = new Blob(['\ufeff', html], {
+                type: 'application/msword'
+            });
+            
+            downloadFile(blob, 'Трекер_вакансий.doc', null);
+            showModal('Word документ скачан! Откройте его в Microsoft Word или Google Docs');
+        }
+
+        function printToPDF() {
+            window.print();
+            showModal('Используйте "Печать -> Сохранить как PDF" для создания PDF файла');
+        }
+
+        function downloadFile(content, fileName, mimeType) {
+            const blob = typeof content === 'string' ? new Blob([content], { type: mimeType }) : content;
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function showModal(message) {
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('exportModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('exportModal').classList.remove('active');
+        }
+
+        initializeData();
+        renderTable();
+    </script>
+</body>
+</html>
