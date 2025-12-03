@@ -534,10 +534,11 @@
                         <span class="company-name">${job.name}</span>
                         <span class="sector">${job.sector}</span>
                     </td>
-                    <td style="text-align: center;">
+<td style="text-align: center;">
                         <input type="checkbox" ${job.applied ? 'checked' : ''} 
                                onchange="toggleApplied(${job.id})">
                     </td>
+                    <td style="vertical-align: middle;">
                         <select onchange="updateStatus(${job.id}, this.value)" class="status-${job.status.toLowerCase().replace(' ', '-')}">
                             <option value="Не отправлен" ${job.status === 'Не отправлен' ? 'selected' : ''}>Не отправлен</option>
                             <option value="Отправлен" ${job.status === 'Отправлен' ? 'selected' : ''}>Отправлен</option>
@@ -546,7 +547,7 @@
                             <option value="Оффер" ${job.status === 'Оффер' ? 'selected' : ''}>Оффер</option>
                             <option value="Отказ" ${job.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
                         </select>
-                    </td>
+</td>
                     <td>
     <div style="display: flex; gap: 10px; align-items: center;">
         <input type="text" value="${job.notes}" 
