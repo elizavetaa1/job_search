@@ -537,6 +537,14 @@
                         <input type="checkbox" ${job.applied ? 'checked' : ''} 
                                onchange="toggleApplied(${job.id})">
                     </td>
+                    <td style="text-align: center;">
+    <button onclick="deleteCompany(${job.id})" 
+            style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600; transition:all 0.3s;"
+            onmouseover="this.style.background='#d32f2f'"
+            onmouseout="this.style.background='#f44336'">
+        🗑️ Удалить
+    </button>
+</td>
                     <td>
                         <select onchange="updateStatus(${job.id}, this.value)" class="status-${job.status.toLowerCase().replace(' ', '-')}">
                             <option value="Не отправлен" ${job.status === 'Не отправлен' ? 'selected' : ''}>Не отправлен</option>
@@ -721,6 +729,7 @@
                         <th>Отклик</th>
                         <th>Статус</th>
                         <th>Заметки</th>
+                        <th style="text-align: center;">Действия</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -803,6 +812,17 @@ function addNewCompany() {
 
     document.getElementById('newCompanyName').value = '';
     document.getElementById('newCompanySector').value = '';
+}function deleteCompany(id) {
+    const company = jobData.find(j => j.id === id);
+    
+    if (confirm(`Вы уверены, что хотите удалить компанию "${company.name}"?`)) {
+        jobData = jobData.filter(j => j.id !== id);
+        
+        jobData.forEach((job, index) => job.id = index);
+        
+        saveData();
+        renderTable();
+    }
 }
 
         initializeData();
