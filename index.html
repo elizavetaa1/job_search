@@ -349,6 +349,22 @@
             <button class="filter-btn" onclick="filterBySector('Телеком')">Телеком</button>
             <button class="filter-btn" onclick="filterBySector('Энергетика')">Энергетика</button>
         </div>
+<div class="add-company" style="margin-bottom:20px; background:white; padding:20px; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
+    <h3 style="margin-bottom:10px; color:#667eea;">➕ Добавить новую компанию</h3>
+    
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <input id="newCompanyName" type="text" placeholder="Название компании" 
+               style="flex:1; padding:10px; border:2px solid #ddd; border-radius:8px;">
+
+        <input id="newCompanySector" type="text" placeholder="Сектор (например: IT)" 
+               style="flex:1; padding:10px; border:2px solid #ddd; border-radius:8px;">
+
+        <button onclick="addNewCompany()" 
+                style="padding:10px 20px; background:#667eea; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600;">
+            Добавить
+        </button>
+    </div>
+</div>
 
         <div class="main-content">
             <div class="table-container">
@@ -756,6 +772,36 @@
         function closeModal() {
             document.getElementById('exportModal').classList.remove('active');
         }
+function addNewCompany() {
+    const name = document.getElementById('newCompanyName').value.trim();
+    const sector = document.getElementById('newCompanySector').value.trim();
+
+    if (!name || !sector) {
+        alert("Введите название и сектор компании!");
+        return;
+    }
+
+    const newCompany = {
+        id: jobData.length,
+        name,
+        sector,
+        applied: false,
+        status: 'Не отправлен',
+        notes: ''
+    };
+
+    jobData.push(newCompany);
+
+    jobData.sort((a, b) => a.sector.localeCompare(b.sector));
+
+    jobData.forEach((job, index) => job.id = index);
+
+    saveData();
+    renderTable();
+
+    document.getElementById('newCompanyName').value = '';
+    document.getElementById('newCompanySector').value = '';
+}
 
         initializeData();
         renderTable();
