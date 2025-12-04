@@ -53,12 +53,19 @@
         }
 
         .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            text-align: center;
-        }
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
 
         .stat-number {
             font-size: 36px;
@@ -350,6 +357,8 @@
             <button class="filter-btn" onclick="filterBySector('Медицина')">Медицина</button>
             <button class="filter-btn" onclick="filterBySector('Телеком')">Телеком</button>
             <button class="filter-btn" onclick="filterBySector('Энергетика')">Энергетика</button>
+            <button class="filter-btn" onclick="filterBySector('Консалтинг')">Консалтинг</button>
+
         </div>
 <div class="add-company" style="margin-bottom:20px; background:white; padding:20px; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
     <h3 style="margin-bottom:10px; color:#667eea;">➕ Добавить новую компанию</h3>
@@ -417,6 +426,10 @@
 
     <script>
         const companies = [
+        {name: "Deloitte", sector: "Консалтинг"},
+{name: "PwC", sector: "Консалтинг"},
+{name: "EY", sector: "Консалтинг"},
+{name: "KPMG", sector: "Консалтинг"},
             {name: "Альфа-Банк", sector: "Финансы"},
             {name: "ВТБ", sector: "Финансы"},
             {name: "Сбербанк", sector: "Финансы"},
@@ -594,16 +607,23 @@
         }
 
         function updateStats() {
-            const sent = jobData.filter(j => j.applied).length;
-            const inProgress = jobData.filter(j => ['Просмотрен', 'Интервью'].includes(j.status)).length;
-            const rejected = jobData.filter(j => j.status === 'Отказ').length;
-            const offers = jobData.filter(j => j.status === 'Оффер').length;
+    const sent = jobData.filter(j => j.applied).length;
+    const inProgress = jobData.filter(j => ['Просмотрен', 'Интервью'].includes(j.status)).length;
+    const rejected = jobData.filter(j => j.status === 'Отказ').length;
+    const offers = jobData.filter(j => j.status === 'Оффер').length;
 
-            document.getElementById('sentCount').textContent = sent;
-            document.getElementById('inProgressCount').textContent = inProgress;
-            document.getElementById('rejectedCount').textContent = rejected;
-            document.getElementById('offerCount').textContent = offers;
-            document.getElementById('totalCompanies').textContent = jobData.length;
+    document.getElementById('sentCount').textContent = sent;
+    document.getElementById('inProgressCount').textContent = inProgress;
+    document.getElementById('rejectedCount').textContent = rejected;
+    document.getElementById('offerCount').textContent = offers;
+    document.getElementById('totalCompanies').textContent = jobData.length;
+    
+    // Добавляем обработчики кликов на карточки
+    document.getElementById('totalCompanies').parentElement.onclick = () => filterByStatus('all');
+    document.getElementById('sentCount').parentElement.onclick = () => filterByStatus('sent');
+    document.getElementById('inProgressCount').parentElement.onclick = () => filterByStatus('inProgress');
+    document.getElementById('rejectedCount').parentElement.onclick = () => filterByStatus('rejected');
+    document.getElementById('offerCount').parentElement.onclick = () => filterByStatus('offer');
         }
 
         let chart;
@@ -662,13 +682,80 @@
         }
 
         function filterBySector(sector) {
-            currentFilter = sector;
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            renderTable();
-        }
+    currentFilter = sector;
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    renderTable();
+}
+
+function filterByStatus(status) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    
+    let filteredData;
+    
+    switch(status) {
+        case 'all':
+            filteredData = jobData;
+            break;
+        case 'sent':
+            filteredData = jobData.filter(j => j.applied);
+            break;
+        case 'inProgress':
+            filteredData = jobData.filter(j => ['Просмотрен', 'Интервью'].includes(j.status));
+            break;
+        case 'rejected':
+            filteredData = jobData.filter(j => j.status === 'Отказ');
+            break;
+        case 'offer':
+            filteredData = jobData.filter(j => j.status === 'Оффер');
+            break;
+        default:
+            filteredData = jobData;
+    }
+    
+    filteredData.forEach((job) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${job.id + 1}</td>
+            <td>
+                <span class="company-name">${job.name}</span>
+                <span class="sector">${job.sector}</span>
+            </td>
+            <td style="text-align: center;">
+                <input type="checkbox" ${job.applied ? 'checked' : ''} 
+                       onchange="toggleApplied(${job.id})">
+            </td>
+            <td style="vertical-align: middle;">
+                <select onchange="updateStatus(${job.id}, this.value)" class="status-${job.status.toLowerCase().replace(' ', '-')}">
+                    <option value="Не отправлен" ${job.status === 'Не отправлен' ? 'selected' : ''}>Не отправлен</option>
+                    <option value="Отправлен" ${job.status === 'Отправлен' ? 'selected' : ''}>Отправлен</option>
+                    <option value="Просмотрен" ${job.status === 'Просмотрен' ? 'selected' : ''}>Просмотрен</option>
+                    <option value="Интервью" ${job.status === 'Интервью' ? 'selected' : ''}>Интервью</option>
+                    <option value="Оффер" ${job.status === 'Оффер' ? 'selected' : ''}>Оффер</option>
+                    <option value="Отказ" ${job.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
+                </select>
+            </td>
+            <td>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" value="${job.notes}" 
+                           onchange="updateNotes(${job.id}, this.value)"
+                           placeholder="Добавить заметку..."
+                           style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 5px;">
+                    <button onclick="deleteCompany(${job.id})" 
+                            style="background:#f44336; color:white; border:none; padding:6px 12px; border-radius:5px; cursor:pointer; font-weight:600; white-space: nowrap;"
+                            onmouseover="this.style.background='#d32f2f'"
+                            onmouseout="this.style.background='#f44336'">
+                        🗑️ Удалить
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
 
         function exportToCSV() {
             let csv = '\ufeffКомпания,Сектор,Отклик отправлен,Статус,Заметки\n';
